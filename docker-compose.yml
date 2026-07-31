@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=hatchet
+      - POSTGRES_PASSWORD=hatchet
+      - POSTGRES_DB=hatchet
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hatchet"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  hatchet-lite:
+    image: ghcr.io/hatchet-dev/hatchet-lite:latest
+    environment:
+      - DATABASE_URL=postgresql://hatchet:hatchet@postgres:5432/hatchet?sslmode=disable
+      - SERVER_URL=http://localhost:8080
+      - SERVER_GRPC_BIND_ADDRESS=0.0.0.0:7077
+      # Dummy tokens for local POC
+      - HATCHET_CLIENT_TOKEN=dummy-token-for-local-dev
+      - HATCHET_CLIENT_TLS_STRATEGY=none
+    ports:
+      - "8080:8080" # REST API / Dashboard
+      - "7077:7077" # gRPC Worker Port
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
