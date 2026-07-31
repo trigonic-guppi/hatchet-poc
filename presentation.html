@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+		<title>Ube V1 Architecture: Hatchet POC</title>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/night.min.css">
+        <style>
+            .reveal h1, .reveal h2, .reveal h3 { text-transform: none; }
+            .highlight { color: #e7ad52; }
+            .code-sm { font-size: 0.55em; line-height: 1.2em; }
+        </style>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				
+                <!-- Slide 1 -->
+                <section>
+					<h2>Ube V1 Architecture</h2>
+					<p class="highlight">The Case for Hatchet</p>
+                    <p><small>Balancing Durable Execution with the "Single Debian Box" Constraint</small></p>
+				</section>
+
+                <!-- Slide 2 -->
+				<section>
+					<section>
+                        <h2>The Orchestrator Dilemma</h2>
+                        <p>We need durable execution, retries, and rate limits.</p>
+                        <p>But we want to start small: <strong>One Debian Box.</strong></p>
+                    </section>
+                    <section>
+                        <h3>Temporal: The Heavyweight</h3>
+                        <ul>
+                            <li>Used by Lovable & Codex (Industry Standard)</li>
+                            <li><strong>The Catch:</strong> Massive DevOps Tax</li>
+                            <li>Requires History Service, Matching Service, Frontend, Workers, + DB (Cassandra) + Elasticsearch.</li>
+                            <li style="color: #ff4444;">Overkill for Day 1 on a single node.</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h3>Hatchet: The Sweet Spot</h3>
+                        <ul>
+                            <li>Temporal's execution model without the bloat.</li>
+                            <li>Runs entirely on <strong>Postgres</strong>.</li>
+                            <li>Spins up in seconds via a single `docker-compose`.</li>
+                            <li style="color: #44ff44;">Perfect for the Debian box constraint.</li>
+                        </ul>
+                    </section>
+				</section>
+
+                <!-- Slide 3 -->
+                <section>
+                    <h2>Polyglot Harmony</h2>
+                    <p>Hatchet natively supports the exact split we want.</p>
+                    <div style="display: flex; justify-content: space-around; margin-top: 40px;">
+                        <div>
+                            <h4 style="color: #3178c6;">TypeScript (API)</h4>
+                            <p>Lightweight webhook receivers.<br>Pushes events to queue.</p>
+                        </div>
+                        <div>
+                            <h4 style="color: #ffe873;">Python (AI Workers)</h4>
+                            <p>Heavy lifting.<br>Executes multi-step LLM DAGs.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Slide 4 -->
+                <section>
+                    <h2>Resilience & Rate Limits</h2>
+                    <p>Meta API and LLMs will rate limit and drop requests.</p>
+                    <ul>
+                        <li>Hatchet provides <strong>Global Concurrency Limits</strong> out of the box.</li>
+                        <li><strong>Auto-Retries:</strong> A flaky API call automatically backs off and retries.</li>
+                        <li>No Redis Lua scripts required.</li>
+                    </ul>
+                </section>
+
+                <!-- Slide 5 -->
+                <section>
+                    <h2>What about Braintrust?</h2>
+                    <p>Temporal has a "native" integration, but...</p>
+                    <p class="highlight">We don't need Temporal to use Braintrust.</p>
+                    <p>Braintrust is an SDK. We drop `import braintrust` directly into our Python Hatchet workers to trace LLM calls and log eval datasets.</p>
+                </section>
+
+                <!-- Slide 6 -->
+                <section>
+                    <h2>The Live POC</h2>
+                    <p>Check out: <code>github.com/trigonic-guppi/hatchet-poc</code></p>
+                    <pre class="code-sm"><code class="bash" data-trim data-noescape>
+# 1. Spin up Orchestrator
+docker compose up -d
+
+# 2. Start Python Worker (Simulates 50% API Failure)
+cd python-worker && python worker.py
+
+# 3. Fire TS Event Spike
+cd ts-client && npm start
+                    </code></pre>
+                    <p><small>Watch the dashboard (localhost:8080) automatically retry the simulated failures.</small></p>
+                </section>
+
+                <!-- Slide 7 -->
+                <section>
+                    <h2>Recommendation</h2>
+                    <p>Start with <span class="highlight">Hatchet</span> for V1 to keep DevOps near zero.</p>
+                    <p>Migrate to <strong>Temporal Cloud</strong> when revenue/scale justifies the enterprise tier.</p>
+                </section>
+
+			</div>
+		</div>
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+		<script>
+			Reveal.initialize({
+				hash: true,
+                transition: 'slide'
+			});
+		</script>
+	</body>
+</html>
